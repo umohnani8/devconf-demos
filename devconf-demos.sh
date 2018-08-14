@@ -25,13 +25,13 @@ read -p "--> sudo crictl start $CTR"
 sudo crictl start $CTR
 echo ""
 
-read -p "--> sudo exec -i -t $CTR sh"
-sudo exec -i -t $CTR sh
+read -p "--> sudo crictl exec -i -t $CTR sh"
+sudo crictl exec -i -t $CTR sh
 echo ""
 
 read -p "--> cleanup"
-sudo stopp $POD
-sudo runp $POD
+sudo crictl stopp $POD
+sudo crictl rmp $POD
 echo ""
 
 # Modifying capabilities in CRI-O
@@ -62,13 +62,12 @@ read -p "--> sudo crictl exec --sync $CTR capsh --print"
 sudo crictl exec --sync $CTR capsh --print
 echo ""
 
-read -p "--> cat /run/containers/storage/overlay-containers/$POD/userdata/config.json"
-cat /run/containers/storage/overlay-containers/$POD/userdata/config.json
+read -p "--> sudo cat /run/containers/storage/overlay-containers/$POD/userdata/config.json"
+sudo cat /run/containers/storage/overlay-containers/$POD/userdata/config.json
 echo ""
-
 read -p "--> cleanup"
-sudo stopp $POD
-sudo runp $POD
+sudo crictl stopp $POD
+sudo crictl rmp $POD
 echo ""
 
 # Buildah from scratch - minimal images
@@ -85,16 +84,16 @@ mnt=$(sudo buildah mount $ctr)
 echo $mnt
 echo ""
 
-read -p "--> dnf install -y --installroot=$mnt mongoose --releasever=27 --disablerepo=* --enablerepo=fedora --enablerepo=updates"
-dnf install -y --installroot=$mnt mongoose --releasever=27 --disablerepo=* --enablerepo=fedora --enablerepo=updates
+read -p "--> sudo dnf install -y --installroot=$mnt mongoose --releasever=27 --disablerepo=* --enablerepo=fedora --enablerepo=updates"
+sudo dnf install -y --installroot=$mnt mongoose --releasever=27 --disablerepo=* --enablerepo=fedora --enablerepo=updates
 echo ""
 
-read -p "--> dnf clean all --installroot=$mnt"
-dnf clean all --installroot=$mnt
+read -p "--> sudo dnf clean all --installroot=$mnt"
+sudo dnf clean all --installroot=$mnt
 echo ""
 
 read -p "--> cp index.html $mnt"
-cp index.html $mnt
+sudo cp index.html $mnt
 echo ""
 
 read -p "--> sudo buildah unmount $ctr"
@@ -109,34 +108,45 @@ read -p "--> sudo buildah commit $ctr my-mongoose"
 sudo buildah commit $ctr my-mongoose
 echo ""
 
-read -p "--> sudo buildah from my-mongoose"
-ctr=$(sudo buildah from my-mongoose)
-echo $ctr
+#read -p "--> sudo buildah from my-mongoose"
+#ctr=$(sudo buildah from my-mongoose)
+#echo $ctr
+#echo ""
+
+read -p "--> sudo podman run -td my-mongoose"
+contID=$(sudo podman run -td my-mongoose)
 echo ""
 
-read -p "--> sudo buildah run $ctr sh"
-sudo buildah run $ctr sh
+read -p "--> sudo podman inspect $contID"
+sudo podman inspect $contID
+ipAddress=$(sudo podman inspect $contID | awk -F  ":" '/IPAddress\"/ {print $2}' | sed 's/"//g' | sed 's/,//g')
+echo ""
+
+read -p "--> curl $ipAddress:8080"
+curl $ipAddress:8080
 echo ""
 
 read -p "--> cleanup"
-sudo buildah rm -a
+sudo crictl stopp my-mongoose
+sudo crictl rmp my-mongoose
 echo ""
 
 # Buildah inside a container
 read -p "Buildah inside a container"
 echo ""
 
-read -p "--> buildah from fedora"
-ctr=$(buildah from fedora)
+read -p "--> sudo buildah from fedora"
+ctr=$(sudo buildah from fedora)
 echo $ctr
 echo ""
 
-read -p "--> buildah run --volume $PWD/myvol:/myvol:z $ctr sh"
-buildah run --volume $PWD/myvol:/myvol:z $ctr sh
+read -p "--> sudo buildah run --volume $PWD/myvol:/myvol:z $ctr sh"
+sudo buildah run --volume $PWD/myvol:/myvol:z $ctr sh
 echo ""
 
 read -p "--> cleanup"
-buildah rm -a
+sudo crictl stopp $ctr
+sudo crictl rmp $ctr
 echo ""
 
 # Podman Fork/Exec model
@@ -183,8 +193,8 @@ read -p "--> podman images"
 podman images
 echo ""
 
-read -p "--> podman run alpine ls"
-podman run --rm alpine ls
+read -p "--> podman cgroup-manager cgroupfs run alpine ls"
+podman --cgroup-manager cgroupfs run --rm alpine ls
 echo ""
 
 # Skopeo inspect a remote image
