@@ -46,12 +46,12 @@ read -p "--> sudo systemctl restart crio"
 sudo systemctl restart crio
 echo ""
 
-read -p "--> sudo crictl runp sandbox_config.json"
-POD=$(sudo crictl runp sandbox_config.json)
+read -p "--> sudo crictl runp ping_sandbox_config.json"
+POD=$(sudo crictl runp ping_sandbox_config.json)
 echo ""
 
-read -p "--> sudo crictl create $POD container_demo.json sandbox_config.json"
-CTR=$(sudo crictl create $POD container_demo.json sandbox_config.json)
+read -p "--> sudo crictl create $POD ping_demo.json ping_sandbox_config.json"
+CTR=$(sudo crictl create $POD ping_demo.json ping_sandbox_config.json)
 echo ""
 
 read -p "--> sudo crictl start $CTR"
@@ -62,8 +62,12 @@ read -p "--> sudo crictl exec --sync $CTR capsh --print"
 sudo crictl exec --sync $CTR capsh --print
 echo ""
 
-read -p "--> sudo cat /run/containers/storage/overlay-containers/$POD/userdata/config.json"
-sudo cat /run/containers/storage/overlay-containers/$POD/userdata/config.json
+#read -p "--> sudo cat /run/containers/storage/overlay-containers/$POD/userdata/config.json"
+#sudo cat /run/containers/storage/overlay-containers/$POD/userdata/config.json
+#echo ""
+
+read -p "--> sudo crictl exec --sync $CTR sh -c 'ping 127.0.0.1'"
+sudo crictl exec --sync $CTR sh -c 'ping 127.0.0.1'
 echo ""
 
 read -p "--> cleanup"
@@ -95,10 +99,6 @@ echo ""
 
 read -p "--> sudo buildah unmount $ctr"
 sudo buildah unmount $ctr
-echo ""
-
-read -p "--> sudo buildah config --entrypoint=/usr/bin/mongoose $ctr"
-sudo buildah config --entrypoint=/usr/bin/mongoose $ctr
 echo ""
 
 read -p "--> sudo buildah commit $ctr my-mongoose"
